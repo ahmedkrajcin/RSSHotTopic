@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -64,7 +65,7 @@ public class RSSFeedService {
             wordOccurrencesFromFeeds[i] = futures.get(i).get();
         }
         executor.shutdown();
-        logger.info("Getting data finished");
+        logger.info("Getting data finished for URLs: " + feedUrls);
         // Get the set of words that appear in all feeds
         Set<String> commonWords = getCommonWords(wordOccurrencesFromFeeds);
 
@@ -144,22 +145,16 @@ public class RSSFeedService {
                 .collect(Collectors.toConcurrentMap(word -> word, word -> 1, Integer::sum));
     }
 
-    private SyndFeed getSyndFeed(String feedUrl) throws FeedException, IOException {
+    private SyndFeed getSyndFeed(String feedUrl) {
      try {
          SyndFeedInput input = new SyndFeedInput();
          URL url = new URL(feedUrl);
          SyndFeed feed = input.build(new XmlReader(url));
          return feed;
-     } catch (IllegalArgumentException e) {
-         throw new RuntimeException(e);
-     }  catch (FeedException e) {
+     } catch (IllegalArgumentException | FeedException | IOException e) {
          logger.error("Error in RSS feed loading: URL:" + feedUrl + e.getLocalizedMessage());
-         throw new RuntimeException(e);
-     } catch (IOException e) {
-         logger.error("Error in RSS feed loading: URL:" + feedUrl + e.getLocalizedMessage());
-         throw new RuntimeException(e);
+         throw new RuntimeException(("Error in RSS feed loading: URL:" + feedUrl));
      }
-
     }
 
     public FrequencyResponse getFrequency(String identifier) {
